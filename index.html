@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科研HOT｜前沿文献雷达</title>
+<script src="config.js"></script>
+<style>
+  :root { --ink:#1a1a1a; --muted:#6b6b6b; --line:#ddd; --accent:#8c1d18; --bg:#f7f4ee; --card:#fff; --chip:#eee8dc; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Songti SC","Noto Serif SC",Georgia,serif; }
+  a { color:var(--accent); }
+  /* ---------- 密码门 ---------- */
+  #gate { position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; }
+  #gate .box { max-width:420px; width:100%; background:var(--card); border:1px solid var(--line); border-top:4px solid var(--accent); padding:28px; text-align:center; }
+  #gate h1 { font-size:22px; margin:0 0 6px; }
+  #gate p { color:var(--muted); font-size:14px; line-height:1.7; }
+  #gate input { width:100%; padding:11px; font-size:16px; border:1px solid var(--line); margin:12px 0; }
+  #gate button { width:100%; padding:11px; background:var(--accent); color:#fff; border:0; font-size:16px; cursor:pointer; }
+  #gate .err { color:var(--accent); font-size:14px; min-height:20px; }
+  #gate .fineprint { font-size:12px; color:#999; }
+  /* ---------- 主站 ---------- */
+  #app { display:none; max-width:960px; margin:0 auto; padding:0 16px 60px; }
+  header { border-bottom:3px double var(--ink); padding:22px 0 12px; text-align:center; }
+  header h1 { font-size:30px; margin:0; letter-spacing:2px; }
+  header .sub { color:var(--muted); font-size:14px; margin-top:6px; }
+  #status { font-size:13px; color:var(--muted); text-align:center; padding:8px 0; border-bottom:1px solid var(--line); line-height:1.6; }
+  .tabs { display:flex; gap:8px; margin:16px 0 10px; flex-wrap:wrap; }
+  .tabs button { flex:1; min-width:100px; padding:10px 6px; background:var(--card); border:1px solid var(--line); font-size:15px; cursor:pointer; font-family:inherit; }
+  .tabs button.active { background:var(--ink); color:#fff; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0; }
+  .filters .chip { padding:6px 12px; border:1px solid var(--line); background:var(--chip); border-radius:20px; font-size:13px; cursor:pointer; }
+  .filters .chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .filters select, .filters input[type=search] { padding:7px 9px; font-size:14px; border:1px solid var(--line); font-family:inherit; }
+  .filters input[type=search] { flex:1; min-width:160px; }
+  .dayhead { font-size:17px; font-weight:bold; margin:22px 0 8px; border-bottom:1px solid var(--ink); padding-bottom:4px; }
+  .card { background:var(--card); border:1px solid var(--line); padding:16px; margin-bottom:12px; }
+  .card h3 { margin:0 0 6px; font-size:18px; line-height:1.5; }
+  .card .meta { font-size:13px; color:var(--muted); line-height:1.7; }
+  .badge { display:inline-block; font-size:12px; padding:1px 7px; border:1px solid var(--accent); color:var(--accent); border-radius:3px; margin-right:5px; }
+  .badge.preprint { background:#fdf0ef; }
+  .badge.digest { border-color:#1d5c8c; color:#1d5c8c; background:#eef5fa; }
+  .badge.oa { border-color:#2e7d32; color:#2e7d32; }
+  .score { font-size:13px; margin:8px 0; }
+  .score b { font-size:16px; }
+  .reason { font-size:14px; background:#fdf8ec; border-left:3px solid var(--accent); padding:8px 10px; margin:8px 0; }
+  .abstract { font-size:14px; line-height:1.8; color:#333; display:none; margin-top:8px; }
+  .abstract.open { display:block; }
+  .card .actions { margin-top:10px; font-size:13px; }
+  .card .actions button, .card .actions a { margin-right:12px; }
+  .card .actions button { background:none; border:0; color:var(--accent); cursor:pointer; font-size:13px; padding:0; font-family:inherit; }
+  .star { cursor:pointer; font-size:18px; background:none; border:0; padding:0 4px; }
+  .empty { color:var(--muted); text-align:center; padding:40px 0; }
+  footer { text-align:center; color:var(--muted); font-size:12px; margin-top:30px; line-height:1.8; }
+  @media (max-width:600px){ header h1{font-size:23px;} .card h3{font-size:16px;} }
+</style>
+</head>
+<body>
+
+<!-- 密码门：简易密码门，不是真加密。数据 JSON 在仓库仍是明文，懂行者可绕过。 -->
+<div id="gate">
+  <div class="box">
+    <h1>科研HOT｜前沿文献雷达</h1>
+    <p>课题组内部页面，请输密码解锁。<br>解锁状态只保留在当前标签页，关掉需重输。</p>
+    <input type="password" id="pw" placeholder="请输入密码" autocomplete="off">
+    <button id="unlockBtn">解锁进入</button>
+    <div class="err" id="gateErr"></div>
+    <p class="fineprint">本站只存密码的 SHA-256 哈希，不存明文密码。<br>简易密码门：防随手点开的外人，不是真加密。</p>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <h1>科研HOT｜前沿文献雷达</h1>
+    <div class="sub">病理性瘢痕与纤维化 · 单细胞与空间组学方法 · 口腔种植与植入物纤维化（不收正畸牙吸收 / OTM）</div>
+  </header>
+  <div id="status">数据加载中…</div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="featured" class="active">精选</button>
+    <button data-tab="latest">最新</button>
+    <button data-tab="weekly">每周深读</button>
+    <button data-tab="favorites">收藏 <span id="favCount">(0)</span></button>
+  </div>
+
+  <div class="filters">
+    <span class="chip active" data-track="all">全部赛道</span>
+    <span class="chip" data-track="scar">瘢痕与纤维化</span>
+    <span class="chip" data-track="omics">单细胞与空间组学</span>
+    <span class="chip" data-track="implant">口腔种植与植入物</span>
+    <select id="typeFilter">
+      <option value="all">全部类型</option>
+      <option value="Article">Article</option>
+      <option value="Review">Review</option>
+      <option value="Preprint">Preprint</option>
+      <option value="Method">Method</option>
+    </select>
+    <input type="search" id="search" placeholder="关键词搜索标题 / 期刊 / DOI…">
+  </div>
+
+  <div id="list"></div>
+
+  <footer>
+    数据来源：Europe PMC（PubMed 已发表 + bioRxiv / medRxiv 预印本）+ Gmail《AI文献日报》（仅标题 + DOI）。<br>
+    评分：期刊分量 40 + 课题相关度 40 + 时效 20，规则算分，推荐理由为模板生成；英文原题不机翻。<br>
+    每天 08:10（Asia/Shanghai）由 GitHub Actions 自动刷新；收藏只保存在本浏览器。
+  </footer>
+</div>
+
+<script>
+const TRACK_LABEL = { scar: "瘢痕与纤维化", omics: "单细胞与空间组学", implant: "口腔种植与植入物" };
+let PAPERS = [], DIGEST = [], FAVS = new Set(JSON.parse(localStorage.getItem("research-hot-favs") || "[]"));
+let tab = "featured", trackFilter = "all", typeFilter = "all", query = "";
+
+/* ---------- 密码门 ---------- */
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function tryUnlock() {
+  const cfg = window.RESEARCH_HOT_CONFIG || {};
+  const err = document.getElementById("gateErr");
+  if (!cfg.PASSWORD_SHA256 || cfg.PASSWORD_SHA256 === "REPLACE_WITH_SHA256_HASH") {
+    err.textContent = "本站尚未设置密码，请联系管理员替换 config.js 里的哈希占位符。";
+    return;
+  }
+  const pw = document.getElementById("pw").value;
+  if (!pw) { err.textContent = "请输入密码。"; return; }
+  const hex = await sha256Hex(pw);
+  if (hex === cfg.PASSWORD_SHA256.toLowerCase()) {
+    sessionStorage.setItem("research-hot-unlocked", "1");
+    enter();
+  } else {
+    err.textContent = "密码不对，请重试。";
+  }
+}
+function enter() {
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  loadData();
+}
+document.getElementById("unlockBtn").addEventListener("click", tryUnlock);
+document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "Enter") tryUnlock(); });
+if (sessionStorage.getItem("research-hot-unlocked") === "1") enter();
+
+/* ---------- 数据 ---------- */
+async function loadData() {
+  const status = document.getElementById("status");
+  try {
+    const [pr, dr] = await Promise.all([
+      fetch("data/papers.json").then(r => r.json()),
+      fetch("data/digest.json").then(r => r.json()).catch(() => ({ items: [] })),
+    ]);
+    PAPERS = pr.papers || [];
+    DIGEST = dr.items || [];
+    // 日报合并：按 DOI 去重；已在 papers 里的加“邮箱日报”标记，不在的补一条仅标题+DOI 的卡。
+    const byDoi = {};
+    PAPERS.forEach(p => { if (p.doi) byDoi[p.doi.toLowerCase()] = p; });
+    DIGEST.forEach(d => {
+      const hit = d.doi && byDoi[d.doi.toLowerCase()];
+      if (hit) { hit.from_digest = true; hit.digest_issue = dr.issue; }
+      else {
+        PAPERS.push({
+          id: d.doi, title: d.title, abstract: "", journal: "bioRxiv",
+          journal_tier: "预印本", date: d.date, doi: d.doi, pmid: "", pmcid: "",
+          url: "https://doi.org/" + d.doi, pubmed_url: "", type: "Preprint",
+          is_preprint: true, is_open_access: true, track: d.track || "omics",
+          score: { total: 0, journal: 12, relevance: 0, recency: 0 },
+          reason: "邮箱日报推荐 · 预印本（日报仅提供标题 + DOI）",
+          keywords_matched: [], source: "邮箱日报", from_digest: true, digest_issue: dr.issue,
+        });
+      }
+    });
+    const nDigest = DIGEST.length;
+    status.textContent = `数据更新：${pr.generated_at_local || pr.generated_at || ""} · 共 ${PAPERS.length} 篇（近 ${pr.window ? pr.window.days : 30} 天）` +
+      ` · 其中邮箱日报 ${dr.issue || ""} ${nDigest} 条（仅标题 + DOI） · 来源：Europe PMC、bioRxiv / medRxiv、Gmail 日报` +
+      (pr.errors && pr.errors.length ? ` · 拉取告警 ${pr.errors.length} 条，见 data/papers.json` : "");
+    render();
+  } catch (e) {
+    status.textContent = "数据加载失败，请稍后刷新重试（上游 API 可能暂时不可用）。";
+  }
+}
+
+/* ---------- 渲染 ---------- */
+function filtered() {
+  return PAPERS.filter(p => {
+    if (trackFilter !== "all" && p.track !== trackFilter) return false;
+    if (typeFilter !== "all" && p.type !== typeFilter) return false;
+    if (query) {
+      const hay = (p.title + " " + (p.journal || "") + " " + (p.doi || "")).toLowerCase();
+      if (!hay.includes(query.toLowerCase())) return false;
+    }
+    return true;
+  });
+}
+function sortedForTab(list) {
+  if (tab === "latest") return [...list].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  if (tab === "favorites") return list.filter(p => FAVS.has(p.id));
+  return [...list].sort((a, b) => (b.score.total - a.score.total) || (b.date || "").localeCompare(a.date || ""));
+}
+function cardHTML(p) {
+  const starred = FAVS.has(p.id) ? "★" : "☆";
+  const badges = [];
+  if (p.is_preprint) badges.push('<span class="badge preprint">Preprint · 未同行评审</span>');
+  if (p.from_digest) badges.push('<span class="badge digest">邮箱日报</span>');
+  if (p.is_open_access) badges.push('<span class="badge oa">OA</span>');
+  const s = p.score || { total: 0, journal: 0, relevance: 0, recency: 0 };
+  return `<article class="card">
+    <h3>${escapeHtml(p.title)}</h3>
+    <div class="meta">${badges.join("")}
+      ${escapeHtml(p.journal || "")} · ${escapeHtml(p.journal_tier || "")} · ${escapeHtml(p.date || "")}
+      ${p.doi ? " · DOI: " + escapeHtml(p.doi) : ""}${p.pmid ? " · PMID: " + escapeHtml(p.pmid) : ""}
+      · ${escapeHtml(TRACK_LABEL[p.track] || p.track || "")} · ${escapeHtml(p.type || "")}
+    </div>
+    <div class="score">综合分 <b>${s.total}</b> / 100（期刊 ${s.journal} + 相关度 ${s.relevance} + 时效 ${s.recency}）</div>
+    <div class="reason">推荐理由：${escapeHtml(p.reason || "")}</div>
+    ${p.abstract ? `<div class="abstract" id="abs-${cssId(p.id)}">${escapeHtml(p.abstract)}</div>` : `<div class="abstract" id="abs-${cssId(p.id)}">${p.from_digest ? "摘要见原文（日报条目仅提供标题 + DOI）。" : "本条在 Europe PMC 中未提供摘要，见原文。"}</div>`}
+    <div class="actions">
+      <button class="star" data-id="${escapeAttr(p.id)}" title="收藏">${starred}</button>
+      ${p.abstract ? `<button data-abs="${cssId(p.id)}">展开 / 收起摘要</button>` : ""}
+      ${p.url ? `<a href="${escapeAttr(p.url)}" target="_blank" rel="noopener">原文 ↗</a>` : ""}
+      ${p.pubmed_url ? `<a href="${escapeAttr(p.pubmed_url)}" target="_blank" rel="noopener">PubMed ↗</a>` : ""}
+    </div>
+  </article>`;
+}
+function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, "&quot;"); }
+function cssId(s) { return String(s).replace(/[^a-zA-Z0-9]/g, "_"); }
+
+function render() {
+  const list = document.getElementById("list");
+  document.getElementById("favCount").textContent = `(${FAVS.size})`;
+  let items = filtered();
+  if (tab === "featured") {
+    // 近 7 天 Top 10 + 按天分组
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const recent = items.filter(p => p.date && (today - new Date(p.date + "T00:00:00")) / 86400000 <= 7);
+    const top10 = [...recent].sort((a, b) => b.score.total - a.score.total).slice(0, 10);
+    const byDay = {};
+    [...items].sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach(p => {
+      (byDay[p.date || "日期未知"] = byDay[p.date || "日期未知"] || []).push(p);
+    });
+    let html = `<div class="dayhead">近 7 天 Top 10</div>` + (top10.length ? top10.map(cardHTML).join("") : `<div class="empty">近 7 天暂无符合筛选的文献。</div>`);
+    Object.keys(byDay).sort().reverse().forEach(day => {
+      html += `<div class="dayhead">${escapeHtml(day)}</div>` + byDay[day].map(cardHTML).join("");
+    });
+    list.innerHTML = html;
+  } else if (tab === "weekly") {
+    // 上周（周一至周日）Top 7
+    const now = new Date();
+    const dow = (now.getDay() + 6) % 7; // 周一=0
+    const thisMon = new Date(now); thisMon.setDate(now.getDate() - dow); thisMon.setHours(0, 0, 0, 0);
+    const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+    const lastSun = new Date(thisMon); lastSun.setDate(thisMon.getDate() - 1);
+    const fmt = d => d.toISOString().slice(0, 10);
+    const weekItems = items.filter(p => p.date && p.date >= fmt(lastMon) && p.date <= fmt(lastSun));
+    const top7 = [...weekItems].sort((a, b) => b.score.total - a.score.total).slice(0, 7);
+    list.innerHTML = `<div class="dayhead">上周 ${fmt(lastMon)} 至 ${fmt(lastSun)} · Top 7</div>` +
+      (top7.length ? top7.map(cardHTML).join("") : `<div class="empty">上周暂无符合筛选的文献。</div>`);
+  } else {
+    const sorted = sortedForTab(items);
+    list.innerHTML = sorted.length ? sorted.map(cardHTML).join("") :
+      `<div class="empty">${tab === "favorites" ? "还没有收藏。点卡片上的 ☆ 即可收藏，保存在本浏览器。" : "没有符合筛选的文献。"}</div>`;
+  }
+  // 事件绑定
+  list.querySelectorAll("[data-abs]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById("abs-" + btn.dataset.abs).classList.toggle("open");
+    });
+  });
+  list.querySelectorAll(".star").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      if (FAVS.has(id)) FAVS.delete(id); else FAVS.add(id);
+      localStorage.setItem("research-hot-favs", JSON.stringify([...FAVS]));
+      render();
+    });
+  });
+}
+
+document.querySelectorAll("#tabs button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#tabs button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    tab = b.dataset.tab;
+    render();
+  });
+});
+document.querySelectorAll(".filters .chip").forEach(c => {
+  c.addEventListener("click", () => {
+    document.querySelectorAll(".filters .chip").forEach(x => x.classList.remove("active"));
+    c.classList.add("active");
+    trackFilter = c.dataset.track;
+    render();
+  });
+});
+document.getElementById("typeFilter").addEventListener("change", e => { typeFilter = e.target.value; render(); });
+document.getElementById("search").addEventListener("input", e => { query = e.target.value.trim(); render(); });
+</script>
+</body>
+</html>
