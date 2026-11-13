@@ -1,0 +1,56 @@
+# 科研HOT | 前沿文献雷达 — 每日自动刷新
+# 每天 08:10 Asia/Shanghai（= 00:10 UTC）运行：
+# 拉取 Europe PMC + bioRxiv/medRxiv，重新打分，更新 data/papers.json，
+# 部署到 GitHub Pages。digest.json 不由本工作流碰（Gmail 由 Muse 另行合并）。
+# 注意：Actions 读不了 Gmail；也不要把任何密码/密钥放进本文件。
+name: daily-refresh
+
+"on":
+  schedule:
+    - cron: "10 0 * * *"  # 00:10 UTC = 08:10 Asia/Shanghai
+  workflow_dispatch: {}  # 允许在 GitHub 网页上手动点 Run workflow
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch papers (Europe PMC + bioRxiv/medRxiv)
+        run: python3 scripts/fetch_papers.py --days 30
+
+      - name: Commit data if changed
+        run: |
+          git config user.name "research-hot-bot"
+          git config user.email "research-hot-bot@users.noreply.github.com"
+          git add data/papers.json
+          git diff --cached --quiet || git commit -m "chore(data): daily refresh $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
