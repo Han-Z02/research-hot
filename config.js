@@ -22,7 +22,7 @@
 window.RESEARCH_HOT_CONFIG = {
   // 占位符：替换为新密码的 SHA-256 哈希（64 位小写十六进制）。
   // 替换前站点打不开（密码门会提示“未设置密码”）。
-  PASSWORD_SHA256: "REPLACE_WITH_SHA256_HASH",
+  PASSWORD_SHA256: "34894edb22e37b9f1b7358232acdd43f7f712b1ee5456b5b2198baf1df999272",
   SITE_NAME: "科研HOT｜前沿文献雷达",
   DATA_URL: "data/papers.json",
   DIGEST_URL: "data/digest.json",
